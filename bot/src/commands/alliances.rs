@@ -52,6 +52,12 @@ pub async fn invite(ctx: Context<'_>, member: serenity::Member) -> Result<(), Er
     if member_account.is_err() {
         ctx.send(|cr| cr.embed(|ce| fmt::error("This user does not have an account. Tell them to make one to invite them to your alliance", ce)).ephemeral(true)).await?;
         return Ok(());
+    } else {
+        let alliance_result = ctx.data().postgres.get_alliance(member.user.id).await;
+        if alliance_result.is_ok() {
+            ctx.send(|cr| cr.embed(|ce| fmt::error("This user is already in an alliance. Ask them to leave it if you want them to join yours", ce)).ephemeral(true)).await?;
+            return Ok(());
+        }
     }
 
     let alliance = ctx.data().postgres.get_alliance(ctx.author().id).await?;
