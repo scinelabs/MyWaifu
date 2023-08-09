@@ -1,0 +1,14 @@
+.DS_Store
+
+Cargo.lock
+
+config.toml
+pyrightconfig.json
+test.dot
+test.png
+client_secrets.json
+codes.txt
+tools/
+archive/
+.env/
+target/

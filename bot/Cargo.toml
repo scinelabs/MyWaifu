@@ -1,0 +1,19 @@
+[package]
+name = "bot"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-process = "1.7.0"
+axum = "0.6.19"
+futures = "0.3.28"
+mongodb = { version = "2.6.0", features = ["tokio-runtime"] }
+petgraph = "0.6.3"
+poise = "0.5.5"
+rand = "0.8.5"
+serde = { version = "1.0.171", features = ["derive"] }
+sqlx = { version = "0.7.1", features = ["postgres", "runtime-tokio-rustls", "chrono"] }
+tokio = { version = "1.29.1", features = ["rt", "rt-multi-thread", "macros", "fs"] }
+toml = "0.7.6"
