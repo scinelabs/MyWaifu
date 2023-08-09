@@ -140,4 +140,17 @@ impl PostgresConnection {
 
         Ok(())
     }
+    pub async fn join_alliance(
+        &self,
+        owner: serenity::UserId,
+        user_id: serenity::UserId,
+    ) -> Result<(), crate::Error> {
+        sqlx::query("UPDATE alliances SET members = array_append(members, $1) WHERE owner = $2")
+            .bind(user_id.0 as i64)
+            .bind(owner.0 as i64)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
 }

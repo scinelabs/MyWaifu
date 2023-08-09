@@ -16,8 +16,7 @@ use crate::{
 #[poise::command(
     slash_command,
     subcommands("visualize", "create", "invite"),
-    check = "crate::checks::has_account",
-    check = "crate::checks::in_alliance"
+    check = "crate::checks::has_account"
 )]
 pub async fn alliance(_: Context<'_>) -> Result<(), Error> {
     Ok(())
@@ -45,20 +44,52 @@ pub async fn create(ctx: Context<'_>, name: String) -> Result<(), Error> {
     Ok(())
 }
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, check = "crate::checks::in_alliance")]
 pub async fn invite(ctx: Context<'_>, member: serenity::Member) -> Result<(), Error> {
-    let message = format!(
-        "**`{}`**, would you like to join **`{}`**'s alliance?",
-        member.display_name(),
-        ctx.author().name
-    );
-    let confirm_menu = ConfirmMenu::start(ctx, &message).await?;
+    ctx.defer_ephemeral().await?;
+
+    let member_account = ctx.data().postgres.get_account(member.user.id).await;
+    if member_account.is_err() {
+        ctx.send(|cr| cr.embed(|ce| fmt::error("This user does not have an account. Tell them to make one to invite them to your alliance", ce)).ephemeral(true)).await?;
+        return Ok(());
+    }
+
+    let alliance = ctx.data().postgres.get_alliance(ctx.author().id).await?;
+    if alliance.owner != ctx.author().id.0 as i64 {
+        ctx.send(|cr| {
+            cr.embed(|ce| fmt::error("You must own the alliance to invite people", ce))
+                .ephemeral(true)
+        })
+        .await?;
+    } else {
+        let message = format!(
+            "**`{}`**, would you like to join **`{}`**'s alliance?",
+            member.display_name(),
+            ctx.author().name
+        );
+        let confirmed = ConfirmMenu::start(ctx, &message).await?;
+        if confirmed {
+            ctx.data()
+                .postgres
+                .join_alliance(ctx.author().id, member.user.id)
+                .await?;
+            ctx.send(|cr| {
+                cr.embed(|ce| {
+                    fmt::success(
+                        "Joined alliance. Check out your new alliance with `/alliance visualize`",
+                        ce,
+                    )
+                })
+            })
+            .await?;
+        }
+    }
 
     Ok(())
 }
 
 /// Visualize your alliance in the form of a tree
-#[poise::command(slash_command)]
+#[poise::command(slash_command, check = "crate::checks::in_alliance")]
 pub async fn visualize(ctx: Context<'_>) -> Result<(), Error> {
     ctx.defer_ephemeral().await?;
 
