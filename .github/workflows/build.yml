@@ -1,0 +1,17 @@
+name: "Build bot"
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Release build and push to branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo build -Z unstable-options --out-dir binaries/ --release
+      - run: git checkout -b binaries
+      - run: git add binaries/
+      - run: git commit -m "New binaries"
+      - run: git push origin binaries
