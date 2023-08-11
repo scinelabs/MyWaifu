@@ -32,15 +32,19 @@ async fn main() {
         .intents(serenity::GatewayIntents::non_privileged())
         .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
-                let guild_id = GuildId::from(conf.discord.test_guild_id);
-                poise::builtins::register_in_guild(
-                    &ctx.http,
-                    &framework.options().commands,
-                    guild_id,
-                )
-                .await?;
+                let resync = false;
 
-                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                if resync {
+                    let guild_id = GuildId::from(conf.discord.test_guild_id);
+                    poise::builtins::register_in_guild(
+                        &ctx.http,
+                        &framework.options().commands,
+                        guild_id,
+                    )
+                    .await?;
+
+                    poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                }
 
                 let postgres_connection = PostgresConnection::connect(&conf.postgres).await;
                 let mongo_connection = MongoConnection::connect(&conf.mongo).await;

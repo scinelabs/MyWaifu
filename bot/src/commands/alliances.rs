@@ -97,80 +97,100 @@ pub async fn invite(ctx: Context<'_>, member: serenity::Member) -> Result<(), Er
 /// Visualize your alliance in the form of a tree
 #[poise::command(slash_command, check = "crate::checks::in_alliance")]
 pub async fn visualize(ctx: Context<'_>) -> Result<(), Error> {
+    // TODO: optimise
     ctx.defer_ephemeral().await?;
 
-    let alliance_result = ctx.data().postgres.get_alliance(ctx.author().id).await;
+    let alliance = ctx.data().postgres.get_alliance(ctx.author().id).await?;
 
-    if let Ok(alliance) = alliance_result {
-        let account = ctx.data().postgres.get_account(ctx.author().id).await?;
+    let mut graph = Graph::<&str, &str>::new();
+
+    let mut previous_member_node = None;
+    let mut name_bindings: Vec<(i64, String)> = vec![];
+    let mut user_waifu_names: Vec<(String, Vec<String>)> = vec![];
+    let mut pairs = vec![];
+
+    let mut full_alliance_members = alliance.members.clone();
+    full_alliance_members.push(alliance.owner);
+
+    for (idx, user_id) in full_alliance_members.iter().enumerate() {
+        name_bindings.push((user_id.clone(), format!("Member {idx}")))
+    }
+
+    for (user_id, member_string) in name_bindings.iter() {
+        let waifu_ids = ctx
+            .data()
+            .postgres
+            .get_waifus(serenity::UserId(user_id.clone() as u64))
+            .await?;
         let waifus = ctx
             .data()
             .mongo
-            .get_waifus(account.waifus.iter().map(|x| x.clone() as i32).collect())
+            .get_waifus(waifu_ids.iter().map(|el| el.clone() as i32).collect())
             .await?;
 
-        let mut graph = Graph::<&str, &str>::new();
-        let names = vec!["mooon"];
+        let waifu_names: Vec<String> = waifus.iter().map(|w| w.name.clone()).collect();
+        user_waifu_names.push((member_string.clone(), waifu_names));
+    }
 
-        let mut pairs = vec![];
-
-        for name in names.iter() {
-            let mut inner = vec![];
-            let name_node = graph.add_node(name.to_owned());
-
-            for waifu in waifus.iter() {
-                let waifu_node = graph.add_node(&waifu.name);
-                inner.push((name_node, waifu_node));
-            }
-            pairs.append(&mut inner);
+    for (member_string, waifu_names) in user_waifu_names.iter() {
+        let mut inner = vec![];
+        let member_node = graph.add_node(member_string);
+        for w_name in waifu_names.iter() {
+            let w_node = graph.add_node(w_name);
+            inner.push((member_node, w_node));
+        }
+        if let Some(previous_m_node) = previous_member_node {
+            inner.push((previous_m_node, member_node))
         }
 
-        graph.extend_with_edges(pairs);
+        previous_member_node = Some(member_node);
 
-        let dot_config = [DotConfig::EdgeNoLabel];
-        let notation = Dot::with_config(&graph, &dot_config).to_string();
-        let graph_id = random_component_id();
-        let path = format!("stages/ats/{graph_id}.dot");
-        let mut file = tokio::fs::File::create(&path).await?;
-        file.write(notation.as_bytes()).await?;
-        file.flush().await?;
+        pairs.append(&mut inner);
+    }
 
-        let image_path = format!("stages/ats/{graph_id}.png");
-        async_process::Command::new("dot")
-            .arg("-Kfdp")
-            .arg("-Tpng")
-            .arg(&path)
-            .arg("-o")
-            .arg(&image_path)
-            .output()
-            .await?;
+    graph.extend_with_edges(pairs);
 
-        let image_file = tokio::fs::read(&image_path).await?;
-        let image_data = Cow::from(&image_file);
-        let attachment = serenity::AttachmentType::Bytes {
-            data: image_data,
-            filename: String::from("graph.png"),
-        };
+    let dot_config = [DotConfig::EdgeNoLabel];
+    let notation = Dot::with_config(&graph, &dot_config).to_string();
+    let graph_id = random_component_id();
+    let path = format!("stages/ats/{graph_id}.dot");
+    let mut file = tokio::fs::File::create(&path).await?;
+    file.write(notation.as_bytes()).await?;
+    file.flush().await?;
 
-        ctx.send(|cr| {
-            cr.embed(|ce| {
-                ce.title(&alliance.name)
-                    .image("attachment://graph.png")
-                    .description(format!(
-                        "This alliance has {} members",
-                        alliance.members.len() + 1 // to include the owner
-                    ))
-                    .colour(serenity::Colour::BLITZ_BLUE)
-            })
-            .attachment(attachment)
-        })
+    let image_path = format!("stages/ats/{graph_id}.png");
+    async_process::Command::new("dot")
+        .arg("-Kfdp")
+        .arg("-Tpng")
+        .arg(&path)
+        .arg("-o")
+        .arg(&image_path)
+        .output()
         .await?;
 
-        tokio::fs::remove_file(&image_path).await?;
-        tokio::fs::remove_file(&path).await?;
-    } else {
-        ctx.send(|cr| cr.embed(|ce| fmt::error("You're not in a alliance. Join one with `/alliance join` or make one with `/alliance create`", ce))).await?;
-    }
+    let image_file = tokio::fs::read(&image_path).await?;
+    let image_data = Cow::from(&image_file);
+    let attachment = serenity::AttachmentType::Bytes {
+        data: image_data,
+        filename: String::from("graph.png"),
+    };
+
+    ctx.send(|cr| {
+        cr.embed(|ce| {
+            ce.title(&alliance.name)
+                .image("attachment://graph.png")
+                .description(format!(
+                    "This alliance has {} members",
+                    alliance.members.len() + 1 // to include the owner
+                ))
+                .colour(serenity::Colour::BLITZ_BLUE)
+        })
+        .attachment(attachment)
+    })
+    .await?;
+
+    tokio::fs::remove_file(&image_path).await?;
+    tokio::fs::remove_file(&path).await?;
 
     Ok(())
 }
