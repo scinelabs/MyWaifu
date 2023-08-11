@@ -22,6 +22,9 @@ pub type Command = poise::Command<Data, Error>;
 
 #[tokio::main]
 async fn main() {
+    let cli_args: Vec<String> = std::env::args().collect();
+    let should_resync = cli_args.contains(&String::from("--resync"));
+
     let conf = config::Config::read();
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -32,9 +35,8 @@ async fn main() {
         .intents(serenity::GatewayIntents::non_privileged())
         .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
-                let resync = false;
-
-                if resync {
+                if should_resync {
+                    println!("Resyncing commands (global and test guild)!");
                     let guild_id = GuildId::from(conf.discord.test_guild_id);
                     poise::builtins::register_in_guild(
                         &ctx.http,

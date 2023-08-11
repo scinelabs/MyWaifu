@@ -25,6 +25,12 @@ pub async fn alliance(_: Context<'_>) -> Result<(), Error> {
 /// Create your own alliance
 #[poise::command(slash_command)]
 pub async fn create(ctx: Context<'_>, name: String) -> Result<(), Error> {
+    if name.len() > 15 {
+        ctx.send(|cr| {
+            cr.embed(|ce| fmt::error("Alliance name must be below 15 characters long.", ce))
+        })
+        .await?;
+    }
     ctx.defer_ephemeral().await?;
 
     ctx.data()
