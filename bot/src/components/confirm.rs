@@ -5,7 +5,11 @@ use crate::utils::random_component_id;
 
 pub struct ConfirmMenu;
 impl ConfirmMenu {
-    pub async fn start(ctx: crate::Context<'_>, text: &str) -> Result<bool, crate::Error> {
+    pub async fn start(
+        ctx: crate::Context<'_>,
+        clickable_id: serenity::UserId,
+        text: &str,
+    ) -> Result<bool, crate::Error> {
         let (confirm_id, cancel_id) = (random_component_id(), random_component_id());
 
         let handle = ctx
@@ -36,6 +40,7 @@ impl ConfirmMenu {
         let mut collector = message
             .await_component_interactions(&ctx.serenity_context().shard)
             .timeout(std::time::Duration::from_secs(60 * 2))
+            .author_id(clickable_id)
             .build();
 
         while let Some(interaction) = collector.next().await {

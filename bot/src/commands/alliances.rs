@@ -108,7 +108,7 @@ pub async fn invite(ctx: Context<'_>, member: serenity::Member) -> Result<(), Er
             member.display_name(),
             ctx.author().name
         );
-        let confirmed = ConfirmMenu::start(ctx, &message).await?;
+        let confirmed = ConfirmMenu::start(ctx, member.user.id, &message).await?;
         if confirmed {
             ctx.data()
                 .postgres

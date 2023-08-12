@@ -41,6 +41,7 @@ pub async fn delete(ctx: Context<'_>) -> Result<(), Error> {
     ctx.defer_ephemeral().await?;
     let confirmed = ConfirmMenu::start(
         ctx,
+        ctx.author().id,
         "Are you sure you want to delete your MyWaifu! account? You'll lose all your waifus and currency. Your account **cannot** be recovered."
     ).await?;
 
