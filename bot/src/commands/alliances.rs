@@ -38,6 +38,11 @@ pub async fn create(ctx: Context<'_>, name: String) -> Result<(), Error> {
         .postgres
         .create_alliance(ctx.author().id, &name)
         .await?;
+    ctx.data()
+        .check_cache
+        .insert_in_alliance(ctx.author().id, true)
+        .await;
+
     ctx.send(|cr| {
         cr.embed(|ce| {
             fmt::success(
