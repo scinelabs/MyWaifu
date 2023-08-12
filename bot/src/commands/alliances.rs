@@ -78,6 +78,7 @@ pub async fn delete(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/// Invite someone to an alliance you own
 #[poise::command(slash_command, check = "crate::checks::in_alliance")]
 pub async fn invite(ctx: Context<'_>, member: serenity::Member) -> Result<(), Error> {
     ctx.defer().await?;
