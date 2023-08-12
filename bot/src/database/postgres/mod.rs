@@ -140,6 +140,14 @@ impl PostgresConnection {
 
         Ok(())
     }
+    pub async fn delete_alliance(&self, user_id: serenity::UserId) -> Result<(), crate::Error> {
+        sqlx::query("DELETE FROM alliances WHERE owner = $1")
+            .bind(user_id.0 as i64)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
     pub async fn join_alliance(
         &self,
         owner: serenity::UserId,

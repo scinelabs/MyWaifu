@@ -15,7 +15,7 @@ use crate::{
 
 #[poise::command(
     slash_command,
-    subcommands("visualize", "create", "invite"),
+    subcommands("visualize", "create", "invite", "delete"),
     check = "crate::checks::has_account"
 )]
 pub async fn alliance(_: Context<'_>) -> Result<(), Error> {
@@ -30,6 +30,7 @@ pub async fn create(ctx: Context<'_>, name: String) -> Result<(), Error> {
             cr.embed(|ce| fmt::error("Alliance name must be below 15 characters long.", ce))
         })
         .await?;
+        return Ok(());
     }
     ctx.defer_ephemeral().await?;
 
@@ -50,9 +51,31 @@ pub async fn create(ctx: Context<'_>, name: String) -> Result<(), Error> {
     Ok(())
 }
 
+/// Delete your alliance
+#[poise::command(slash_command, check = "crate::checks::in_alliance")]
+pub async fn delete(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.defer_ephemeral().await?;
+
+    let alliance = ctx.data().postgres.get_alliance(ctx.author().id).await?;
+    if alliance.owner != ctx.author().id.0 as i64 {
+        ctx.send(|cr| cr.embed(|ce| fmt::error("You must own an alliance to delete it!", ce)))
+            .await?;
+    } else {
+        ctx.data().postgres.delete_alliance(ctx.author().id).await?;
+        ctx.data()
+            .check_cache
+            .insert_in_alliance(ctx.author().id, false)
+            .await;
+        ctx.send(|cr| cr.embed(|ce| fmt::success("Alliance deleted.", ce)))
+            .await?;
+    }
+
+    Ok(())
+}
+
 #[poise::command(slash_command, check = "crate::checks::in_alliance")]
 pub async fn invite(ctx: Context<'_>, member: serenity::Member) -> Result<(), Error> {
-    ctx.defer_ephemeral().await?;
+    ctx.defer().await?;
 
     let member_account = ctx.data().postgres.get_account(member.user.id).await;
     if member_account.is_err() {
