@@ -39,7 +39,7 @@ impl Fulfillments {
         create_dm_init.with_body(Some(create_dm_body.into()));
         create_dm_init.with_headers(headers.clone());
 
-        let create_dm_request = Request::new_with_init(&create_dm_url, &create_dm_init).unwrap();
+        let create_dm_request = Request::new_with_init(&create_dm_url, &create_dm_init)?;
         let response = Fetch::Request(create_dm_request).send().await;
         if let Ok(mut resp) = response {
             let data_result: Result<twilight_model::channel::Channel> = resp.json().await;
