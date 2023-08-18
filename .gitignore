@@ -12,3 +12,8 @@ tools/
 archive/
 .env/
 target/
+
+payments/node_modules/*
+payments/build
+payments/tests.py
+payments/wrangler.toml

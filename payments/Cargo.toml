@@ -1,0 +1,25 @@
+[package]
+name = "payments"
+version = "0.1.0"
+edition = "2021"
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = "0.0.18"
+serde = { version = "1.0.183", features = ["derive"] }
+serde_json = "1.0.104"
+serde_urlencoded = "0.7.1"
+twilight-util = { version = "0.15.2", features = ["builder"] }
+twilight-model = "0.15.2"
+tokio-postgres = { git="https://github.com/sfackler/rust-postgres", branch="master", features=['js'], default-features=false }
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1

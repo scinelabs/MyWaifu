@@ -15,6 +15,8 @@ pub struct Data {
     postgres: PostgresConnection,
     mongo: MongoConnection,
     check_cache: CheckCache,
+    http: reqwest::Client,
+    conf: config::Config,
 } // User data, which is stored and accessible in all command invocations
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
@@ -54,6 +56,8 @@ async fn main() {
                     postgres: postgres_connection,
                     mongo: mongo_connection,
                     check_cache: CheckCache::new(),
+                    http: reqwest::Client::new(),
+                    conf: conf.clone(),
                 })
             })
         });

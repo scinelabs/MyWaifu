@@ -1,3 +1,5 @@
+use poise::serenity_prelude::{ButtonStyle, CacheHttp};
+
 use crate::{
     components::{
         choice::ChoicePrompt,
@@ -7,9 +9,11 @@ use crate::{
     Context, Error,
 };
 
+const SCINE_INVITE: &str = "https://discord.gg/2RTEu23AZP";
+
 #[poise::command(
     slash_command,
-    subcommands("packs"),
+    subcommands("packs", "premium"),
     check = "crate::checks::has_account"
 )]
 pub async fn shop(_: Context<'_>) -> Result<(), Error> {
@@ -100,6 +104,80 @@ pub async fn packs(ctx: Context<'_>) -> Result<(), Error> {
             })
             .await?;
         }
+    }
+
+    Ok(())
+}
+
+#[derive(serde::Deserialize)]
+pub struct UrlKey {
+    pub url: String,
+}
+
+#[derive(Debug, poise::ChoiceParameter)]
+pub enum CrateOption {
+    #[name = "Standard Crate - 2,500 🪙 + 150 🍪 + 15 Packs"]
+    Standard,
+    #[name = "Diamond Crate - 5,000 🪙 + 300 🍪 + 30 Packs"]
+    Diamond,
+}
+impl CrateOption {
+    pub fn price_id(&self) -> &str {
+        match self {
+            Self::Standard => "standard_crate_mywaifu",
+            Self::Diamond => "diamond_crate_mywaifu",
+        }
+    }
+}
+
+/// Shop for items with real money
+#[poise::command(slash_command)]
+pub async fn premium(
+    ctx: Context<'_>,
+    #[description = "What crate you want to purchase"] choice: CrateOption,
+) -> Result<(), Error> {
+    ctx.defer_ephemeral().await?;
+
+    let stripe_url = ctx.data().conf.stripe.format_stripe_hook_url("/cpl");
+    let body = serde_json::json!({
+        "discord_user_id": ctx.author().id.0.to_string(),
+        "price_id": choice.price_id()
+    })
+    .to_string();
+
+    let resp = ctx
+        .data()
+        .http
+        .post(stripe_url)
+        .body(body)
+        .header("Authorization", "testkey")
+        .send()
+        .await?;
+    let data: UrlKey = resp.json().await?;
+
+    let dm_result = ctx.author()
+        .direct_message(ctx.http(), |cm| {
+            cm.embed(|ce| {
+                ce.title("Crate Purchase").description(
+                    ":warning: Please have your DMs open until the purchase has been completed.\nYou will receive a DM after the purchase has been completed.\n\nPlease join the support server if you have any issues.",
+                ).field("Purchase URL", &data.url, false)
+            }).components(|cc| cc.create_action_row(|car| car.create_button(|cb| cb.label("Scine Labs").style(ButtonStyle::Link).url(SCINE_INVITE))))
+        })
+        .await;
+
+    if dm_result.is_ok() {
+        ctx.send(|cr| cr.embed(|ce| fmt::success("Please check your DMs. **Note:** Your DMs must remain open till the purchase has been completed.", ce)))
+            .await?;
+    } else {
+        ctx.send(|cr| {
+            cr.embed(|ce| {
+                fmt::error(
+                    "Please open DMs. Your DMs must be open till the purchase has been completed.",
+                    ce,
+                )
+            })
+        })
+        .await?;
     }
 
     Ok(())
