@@ -7,6 +7,11 @@ const BASE: &str = "https://discord.com/api/v10";
 pub struct Fulfillments;
 impl Fulfillments {
     pub async fn fulfill_order(ctx: &RouteContext<()>, user_id: &str) -> Result<()> {
+        Self::send_discord_message(ctx, user_id).await.ok();
+
+        Ok(())
+    }
+    async fn send_discord_message(ctx: &RouteContext<()>, user_id: &str) -> Result<()> {
         let embed = EmbedBuilder::new()
             .title("Order Complete")
             .description(
