@@ -53,9 +53,9 @@ pub async fn fulfill_order(mut req: Request, ctx: RouteContext<()>) -> Result<Re
     let stripe_event: StripeEvent = req.json().await?;
 
     if stripe_event.event_type == "checkout.session.completed" {
-        let discord_id = stripe_event.data.object.metadata.discord_id;
-        if let Some(user_id) = discord_id {
-            Fulfillments::fulfill_order(&ctx, &user_id).await?;
+        let discord_id = &stripe_event.data.object.metadata.discord_id;
+        if discord_id.is_some() {
+            Fulfillments::fulfill_order(&ctx, stripe_event.data.object.metadata).await?;
             Response::ok("Fulfilled order")
         } else {
             Response::error("Missing 'discord_id' metadata", 400)

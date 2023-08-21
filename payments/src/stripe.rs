@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use worker::{Fetch, Headers, Method, Request, RequestInit, Result, RouteContext};
 
@@ -68,7 +68,7 @@ pub struct StripeEventObject {
     pub metadata: StripeEventMetadata,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct StripeEventMetadata {
     pub discord_id: Option<String>, // not all stripe events will contain metadata
 }

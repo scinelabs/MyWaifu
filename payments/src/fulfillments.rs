@@ -1,23 +1,50 @@
 use serde_json::json;
-use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, ImageSource};
-use worker::{Fetch, Headers, Method, Request, RequestInit, Result, RouteContext};
+use twilight_util::builder::embed::{
+    EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
+};
+use worker::*;
+
+use crate::stripe::StripeEventMetadata;
 
 const BASE: &str = "https://discord.com/api/v10";
 
 pub struct Fulfillments;
 impl Fulfillments {
-    pub async fn fulfill_order(ctx: &RouteContext<()>, user_id: &str) -> Result<()> {
-        Self::send_discord_message(ctx, user_id).await.ok();
+    pub async fn fulfill_order(
+        ctx: &RouteContext<()>,
+        metadata: StripeEventMetadata,
+    ) -> Result<()> {
+        let code = Self::generate_code(ctx, &metadata).await?;
+        Self::send_discord_message(ctx, &metadata.discord_id.unwrap(), &code)
+            .await
+            .ok();
 
         Ok(())
     }
-    async fn send_discord_message(ctx: &RouteContext<()>, user_id: &str) -> Result<()> {
+    async fn generate_code(
+        ctx: &RouteContext<()>,
+        metadata: &StripeEventMetadata,
+    ) -> Result<String> {
+        let uid = uuid::Uuid::new_v4();
+        let payment_code = uid.simple().to_string();
+
+        let kv = ctx.kv("PAYMENT_CODES")?;
+        kv.put(&payment_code, serde_json::to_string(&metadata).unwrap())?
+            .expiration_ttl(86400 * 3) // 3 days
+            .execute()
+            .await?;
+
+        Ok(payment_code)
+    }
+    async fn send_discord_message(ctx: &RouteContext<()>, user_id: &str, code: &str) -> Result<()> {
+        let code_fmt_msg = format!("`{code}`\n\nRun `/shop exchange {code}` to get your items.");
         let embed = EmbedBuilder::new()
             .title("Order Complete")
             .description(
                 "Hey there. Thanks for your purchase, your contribution will go towards paying for our server costs."
             ).image(ImageSource::url("https://media.discordapp.net/attachments/1140568264456544348/1141347789884887070/Powered_by_Stripe_-_blurple-600x136-06cf2b6.png?width=1200&height=272").unwrap())
             .author(EmbedAuthorBuilder::new("Scine Labs").icon_url(ImageSource::url("https://media.discordapp.net/attachments/1140568264456544348/1142052574695010325/121638661.png?width=400&height=400").unwrap()))
+            .field(EmbedFieldBuilder::new("Exchange Code", code_fmt_msg))
             .build();
 
         let bot_token = ctx

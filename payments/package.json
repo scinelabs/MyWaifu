@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev --local"
+    "dev": "wrangler dev --local --port 2007"
   },
   "devDependencies": {
     "wrangler": "^2.13.0"
