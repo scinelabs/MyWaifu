@@ -68,7 +68,7 @@ pub struct StripeEventObject {
     pub metadata: StripeEventMetadata,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct StripeEventMetadata {
     pub discord_id: Option<String>, // not all stripe events will contain metadata
 }
