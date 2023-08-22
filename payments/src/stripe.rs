@@ -72,4 +72,5 @@ pub struct StripeEventObject {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StripeEventMetadata {
     pub discord_id: Option<String>, // not all stripe events will contain metadata
+    pub price_id: Option<String>,
 }
