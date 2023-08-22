@@ -15,3 +15,12 @@ pub struct Alliance {
     pub name: String,
     pub members: Vec<i64>,
 }
+
+#[derive(sqlx::FromRow)]
+pub struct PremiumProduct {
+    pub product_id: String,
+    pub currency: i32,
+    pub premium_currency: i32,
+    pub packs: i16,
+    pub premium_one_packs: i16,
+}
