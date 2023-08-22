@@ -24,7 +24,8 @@ impl StripeClient {
         let data = json!({
             "line_items[0][price]": price_id,
             "line_items[0][quantity]": 1,
-            "metadata[discord_id]": discord_id
+            "metadata[discord_id]": discord_id,
+            "metadata[price_id]": price_id
         });
         let url = Self::create_url(&key, "/payment_links", data);
 
