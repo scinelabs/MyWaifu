@@ -5,7 +5,7 @@ mod stripe;
 use worker::*;
 
 use fulfillments::Fulfillments;
-use models::CreatePaymentLink;
+use models::{CreatePaymentLink, ExchangePaymentCode};
 use stripe::{StripeClient, StripeEvent};
 
 #[event(fetch)]
@@ -18,6 +18,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     router
         .post_async("/cpl", create_payment_link)
         .post_async("/fulfill", fulfill_order)
+        .post_async("/epc", exchange_payment_code)
         .run(req, env)
         .await
 }
@@ -46,6 +47,22 @@ pub async fn create_payment_link(mut req: Request, ctx: RouteContext<()>) -> Res
         let data =
             StripeClient::create_payment_link(&ctx, &data.discord_user_id, &data.price_id).await?;
         Response::ok(data)
+    }
+}
+
+pub async fn exchange_payment_code(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let request_ok = verify_request(&ctx, &req);
+    if !request_ok {
+        Response::error("Invalid Authorization", 403)
+    } else {
+        let data: ExchangePaymentCode = req.json().await?;
+        let kv = ctx.kv("PAYMENT_CODES")?;
+        let metadata = kv.get(&data.code).text().await?;
+        if let Some(metadata) = metadata {
+            Response::ok(metadata)
+        } else {
+            Response::error("Payment code not found", 404)
+        }
     }
 }
 
