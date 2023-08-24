@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use worker::{Fetch, Headers, Method, Request, RequestInit, Result, RouteContext};
@@ -73,4 +75,40 @@ pub struct StripeEventObject {
 pub struct StripeEventMetadata {
     pub discord_id: Option<String>, // not all stripe events will contain metadata
     pub price_id: Option<String>,
+}
+
+// https://github.com/arlyon/async-stripe/blob/master/src/resources/webhook_events.rs#L537
+#[derive(Debug)]
+pub struct Signature<'r> {
+    pub t: i64,
+    pub v1: &'r str,
+}
+
+impl<'r> Signature<'r> {
+    pub fn parse(raw: &'r str) -> Result<Signature<'r>> {
+        let headers: HashMap<&str, &str> = raw
+            .split(',')
+            .map(|header| {
+                let mut key_and_value = header.split('=');
+                let key = key_and_value.next();
+                let value = key_and_value.next();
+                (key, value)
+            })
+            .filter_map(|(key, value)| match (key, value) {
+                (Some(key), Some(value)) => Some((key, value)),
+                _ => None,
+            })
+            .collect();
+        let t = headers
+            .get("t")
+            .ok_or(worker::Error::RustError("Bad Signature".into()))?;
+        let v1 = headers
+            .get("v1")
+            .ok_or(worker::Error::RustError("Bad Signature".into()))?;
+        Ok(Signature {
+            t: t.parse::<i64>()
+                .map_err(|_| worker::Error::RustError("Bad Header".into()))?,
+            v1,
+        })
+    }
 }

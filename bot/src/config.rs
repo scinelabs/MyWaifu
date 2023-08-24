@@ -37,6 +37,7 @@ pub struct Mongo {
 #[derive(Clone, Deserialize)]
 pub struct Stripe {
     pub cloudflare_hook_base: String,
+    pub cloudflare_auth: String,
 }
 impl Stripe {
     pub fn format_stripe_hook_url(&self, path: &str) -> String {

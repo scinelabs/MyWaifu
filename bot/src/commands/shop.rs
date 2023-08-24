@@ -13,7 +13,7 @@ const SCINE_INVITE: &str = "https://discord.gg/2RTEu23AZP";
 
 #[poise::command(
     slash_command,
-    subcommands("packs", "premium"),
+    subcommands("packs", "premium", "exchange"),
     check = "crate::checks::has_account"
 )]
 pub async fn shop(_: Context<'_>) -> Result<(), Error> {
@@ -160,7 +160,7 @@ pub async fn premium(
             cm.embed(|ce| {
                 ce.title("Crate Purchase").description(
                     ":warning: Please have your DMs open until the purchase has been completed.\nYou will receive a DM after the purchase has been completed.\n\nPlease join the support server if you have any issues.",
-                ).field("Purchase URL", &data.url, false)
+                ).field("Purchase URL", &data.url, false).author(|ca| ca.icon_url("https://media.discordapp.net/attachments/1140568264456544348/1142052574695010325/121638661.png?width=400&height=400").name("Scine Labs"))
             }).components(|cc| cc.create_action_row(|car| car.create_button(|cb| cb.label("Scine Labs").style(ButtonStyle::Link).url(SCINE_INVITE))))
         })
         .await;
@@ -176,6 +176,65 @@ pub async fn premium(
                     ce,
                 )
             })
+        })
+        .await?;
+    }
+
+    Ok(())
+}
+
+#[derive(serde::Deserialize)]
+pub struct Metadata {
+    pub discord_id: String,
+    pub price_id: String,
+}
+
+/// Exchange a payment code for your items
+#[poise::command(slash_command)]
+pub async fn exchange(ctx: Context<'_>, code: String) -> Result<(), Error> {
+    ctx.defer_ephemeral().await?;
+
+    let worker_url = ctx.data().conf.stripe.format_stripe_hook_url("/epc");
+
+    let payload = serde_json::json!({
+        "code": code
+    })
+    .to_string();
+    let resp = ctx
+        .data()
+        .http
+        .post(worker_url)
+        .body(payload)
+        .header("Authorization", &ctx.data().conf.stripe.cloudflare_auth)
+        .send()
+        .await?;
+
+    if resp.status() == reqwest::StatusCode::NOT_FOUND {
+        ctx.send(|cr| cr.embed(|ce| fmt::error("Invalid payment code.", ce)))
+            .await?;
+    } else if !resp.status().is_success() {
+        ctx.send(|cr| cr.embed(|ce| fmt::error("An unknown error occurred. Try again later.", ce)))
+            .await?;
+    } else {
+        // all good
+        let data: Metadata = resp.json().await?;
+        let product = ctx
+            .data()
+            .postgres
+            .get_premium_product(&data.price_id)
+            .await?;
+
+        ctx.data()
+            .postgres
+            .update_packs(ctx.author().id, product.packs, product.premium_one_packs)
+            .await?;
+        ctx.data()
+            .postgres
+            .update_currencies(ctx.author().id, product.currency, product.premium_currency)
+            .await?;
+
+        ctx.send(|cr| {
+            cr.embed(|ce| fmt::success("Successfully redeemed items. Enjoy and thank you!", ce))
         })
         .await?;
     }

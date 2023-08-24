@@ -44,7 +44,7 @@ impl Fulfillments {
                 "Hey there. Thanks for your purchase, your contribution will go towards paying for our server costs."
             ).image(ImageSource::url("https://media.discordapp.net/attachments/1140568264456544348/1141347789884887070/Powered_by_Stripe_-_blurple-600x136-06cf2b6.png?width=1200&height=272").unwrap())
             .author(EmbedAuthorBuilder::new("Scine Labs").icon_url(ImageSource::url("https://media.discordapp.net/attachments/1140568264456544348/1142052574695010325/121638661.png?width=400&height=400").unwrap()))
-            .field(EmbedFieldBuilder::new("Exchange Code", code_fmt_msg))
+            .field(EmbedFieldBuilder::new("Payment Code", code_fmt_msg))
             .build();
 
         let bot_token = ctx

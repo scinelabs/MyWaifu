@@ -6,7 +6,7 @@ use sqlx::{
 
 use crate::{
     config::Postgres as PostgresConfig,
-    models::account::{Account, Alliance},
+    models::account::{Account, Alliance, PremiumProduct},
 };
 
 pub struct PostgresConnection {
@@ -160,5 +160,17 @@ impl PostgresConnection {
             .await?;
 
         Ok(())
+    }
+    pub async fn get_premium_product(
+        &self,
+        price_id: &str,
+    ) -> Result<PremiumProduct, crate::Error> {
+        let product: PremiumProduct =
+            sqlx::query_as("SELECT * FROM premium_products WHERE product_id = $1")
+                .bind(price_id)
+                .fetch_one(&self.pool)
+                .await?;
+
+        Ok(product)
     }
 }

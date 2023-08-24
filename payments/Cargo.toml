@@ -20,6 +20,10 @@ twilight-model = "0.15.2"
 tokio-postgres = { git="https://github.com/sfackler/rust-postgres", branch="master", features=['js'], default-features=false }
 url = "2.4.0"
 uuid = { version = "1.4.1", features = ["v4"] }
+chrono = "0.4.26"
+hmac = "0.12.1"
+sha2 = "0.10.7"
+hex = "0.4.3"
 
 [profile.release]
 lto = true
