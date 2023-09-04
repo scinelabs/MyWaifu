@@ -12,6 +12,8 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: "nightly"
+      - run: git config user.name "GitHub Actions Bot"
+      - run: git config user.email ""
       - run: cargo build -Z unstable-options --out-dir binaries/ --release
       - run: git checkout -b binaries
       - run: git add binaries/
