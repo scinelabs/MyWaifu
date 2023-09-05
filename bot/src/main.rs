@@ -50,6 +50,9 @@ async fn main() {
                     poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 }
 
+                let activity = serenity::Activity::playing("with 15,000 waifus");
+                ctx.set_activity(activity).await;
+
                 let postgres_connection = PostgresConnection::connect(&conf.postgres).await;
                 let mongo_connection = MongoConnection::connect(&conf.mongo).await;
                 Ok(Data {
