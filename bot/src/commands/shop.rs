@@ -150,7 +150,7 @@ pub async fn premium(
         .http
         .post(stripe_url)
         .body(body)
-        .header("Authorization", "testkey")
+        .header("Authorization", &ctx.data().conf.stripe.cloudflare_auth)
         .send()
         .await?;
     let data: UrlKey = resp.json().await?;
