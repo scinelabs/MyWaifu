@@ -15,9 +15,7 @@ impl Fulfillments {
         metadata: StripeEventMetadata,
     ) -> Result<()> {
         let code = Self::generate_code(ctx, &metadata).await?;
-        Self::send_discord_message(ctx, &metadata.discord_id.unwrap(), &code)
-            .await
-            .ok();
+        Self::send_discord_message(ctx, &metadata.discord_id.unwrap(), &code).await?;
 
         Ok(())
     }
@@ -89,7 +87,7 @@ impl Fulfillments {
 
                 let create_message_request =
                     Request::new_with_init(&create_message_url, &create_message_init).unwrap();
-                Fetch::Request(create_message_request).send().await.ok(); // doesn't matter if this goes through
+                Fetch::Request(create_message_request).send().await?;
             }
         }
 

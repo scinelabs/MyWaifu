@@ -153,7 +153,10 @@ pub async fn premium(
         .header("Authorization", &ctx.data().conf.stripe.cloudflare_auth)
         .send()
         .await?;
-    let data: UrlKey = resp.json().await?;
+
+    let text = resp.text().await?;
+    println!("{:?}", &text);
+    let data: UrlKey = serde_json::from_str(&text)?;
 
     let dm_result = ctx.author()
         .direct_message(ctx.http(), |cm| {

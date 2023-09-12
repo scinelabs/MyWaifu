@@ -15,7 +15,7 @@ pub struct Waifu {
 impl Waifu {
     pub fn download_url(&self) -> String {
         format!(
-            "https://worker-rust.reachvishm8605.workers.dev/image/{}",
+            "https://mw-image-function.reachvishm8605.workers.dev/image/{}",
             self.gdrive_id
         )
     }
